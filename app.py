@@ -4,7 +4,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="FLY Program Dashboard", layout="wide", page_icon="💙")
+st.set_page_config(page_title="FLY Program Dashboard", layout="wide")
 
 # ----------------------------------------------------------------------------
 # THEME
@@ -133,7 +133,7 @@ valid_pairs = enr_f.dropna(subset=["Total Score(Pre-assessment)", "Total Score(P
 c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("Students Served", f"{demographics['Student ID'].nunique():,}")
 c2.metric("Enrollments (Student × Program)", f"{enr_f.shape[0]:,}")
-c3.metric("Avg Attendance Rate", f"{att_f['Attendance Rate'].mean():.1f}%")
+c3.metric("Avg Attendance Rate", f"{att_f['Attendance Rate'].mean():.1f}%" if len(att_f) else "N/A")
 c4.metric(
     "Avg Assessment Gain",
     f"{valid_pairs['Assessment Improvement'].mean():.1f} pts" if len(valid_pairs) else "N/A",
@@ -142,7 +142,7 @@ c4.metric(
 c5.metric("Enrollments w/ full pre+post data", f"{len(valid_pairs):,} ({len(valid_pairs)/max(len(enr_f),1)*100:.0f}%)")
 
 st.caption(
-    "Only a minority of enrollments have both a pre- and a post-assessment on file "
+    "Note: only a minority of enrollments have both a pre- and a post-assessment on file "
     "(most students have just a quiz score or partial data). The KPI and charts below "
     "are always computed only on records that actually have the data required, and "
     "sample sizes (n) are labeled so small groups aren't over-interpreted."
@@ -153,7 +153,7 @@ st.divider()
 # ----------------------------------------------------------------------------
 # LEARNING OUTCOMES
 # ----------------------------------------------------------------------------
-st.header("📈 Learning Outcomes")
+st.header("Learning Outcomes")
 
 col1, col2 = st.columns(2)
 
@@ -175,7 +175,7 @@ with col1:
         fig.add_annotation(x=15, y=90, text="Above line = improved", showarrow=False,
                             font=dict(color=GRAY, size=11))
         fig.update_layout(xaxis_range=[0, 100], yaxis_range=[0, 100])
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
     else:
         st.info("No enrollments with both pre- and post-assessment scores in the current filter.")
 
@@ -195,7 +195,7 @@ with col2:
             annotation_text=f"Avg: {valid_pairs['Assessment Improvement'].mean():.1f}",
         )
         pct_negative = (valid_pairs["Assessment Improvement"] < 0).mean() * 100
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
         st.caption(f"{pct_negative:.0f}% of enrollments with paired data show a score decline post-program.")
     else:
         st.info("No data to plot.")
@@ -218,9 +218,9 @@ for module, (pre_col, post_col) in MODULE_COLS.items():
             "Avg Gain": (d[post_col] - d[pre_col]).mean(),
             "n": len(d),
         })
-module_df = pd.DataFrame(module_rows).sort_values("Avg Gain", ascending=False)
-
+module_df = pd.DataFrame(module_rows)
 if not module_df.empty:
+    module_df = module_df.sort_values("Avg Gain", ascending=False)
     col1, col2 = st.columns([3, 2])
     with col1:
         plot_df = module_df.melt(
@@ -234,7 +234,7 @@ if not module_df.empty:
             text_auto=".0f",
         )
         fig.update_layout(yaxis_range=[0, 100])
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
     with col2:
         fig = px.bar(
             module_df, x="Avg Gain", y="Module", orientation="h",
@@ -244,7 +244,7 @@ if not module_df.empty:
         )
         fig.update_traces(textposition="outside")
         fig.update_layout(showlegend=False, coloraxis_showscale=False)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
     st.caption(
         "'Spending' shows the smallest average gain — worth a look at whether that unit's "
         "content or pacing needs revisiting."
@@ -278,7 +278,7 @@ if len(quiz):
     )
     fig.update_traces(textposition="outside")
     fig.update_layout(coloraxis_showscale=False, height=420)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 else:
     st.info("No quiz scores in the current filter.")
 
@@ -297,7 +297,7 @@ with col1:
     )
     fig.add_vline(x=att_f["Attendance Rate"].mean(), line_color=BLUE_DARK,
                   annotation_text=f"Avg: {att_f['Attendance Rate'].mean():.0f}%")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
     st.caption(
         f"{(att_f['Attendance Rate'] >= 80).mean()*100:.0f}% of students hit ≥80% attendance, "
         f"but {(att_f['Attendance Rate'] < 50).mean()*100:.0f}% are below 50% — a wide split, "
@@ -323,7 +323,7 @@ with col2:
             line=dict(color=BLUE_DARK, width=3), name="Trend",
         ))
         fig.add_hline(y=0, line_dash="dot", line_color=GRAY)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
     else:
         st.info("Not enough overlapping attendance + assessment data to plot a correlation.")
 
@@ -346,14 +346,14 @@ if len(prog_att_agg):
     )
     fig.update_traces(textposition="outside")
     fig.update_layout(coloraxis_showscale=False, height=500)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
 st.divider()
 
 # ----------------------------------------------------------------------------
 # EQUITY ANALYSIS
 # ----------------------------------------------------------------------------
-st.header("⚖️ Equity Analysis")
+st.header("Equity Analysis")
 st.caption(
     "Composition of who FLY serves, plus attendance and learning-gain outcomes by group. "
     "Groups with fewer than 5 students are dropped from outcome charts to avoid noisy averages."
@@ -376,7 +376,7 @@ for group in demo_groups:
         fig = px.pie(comp, names=group, values="Students", title=f"Who We Serve: {group}",
                      color_discrete_sequence=BLUE_SCALE, hole=0.4)
         fig.update_layout(height=320, showlegend=True)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
     with c2:
         d = demo_att.dropna(subset=[group])
@@ -388,7 +388,7 @@ for group in demo_groups:
                          title="Avg Attendance %", text=agg.apply(lambda r: f"n={r['n']}", axis=1),
                          color_discrete_sequence=[BLUE_MAIN])
             fig.update_layout(height=320, showlegend=False)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
         else:
             st.caption("Not enough data.")
 
@@ -402,7 +402,7 @@ for group in demo_groups:
                          title="Avg Learning Gain (pts)", text=agg.apply(lambda r: f"n={r['n']}", axis=1),
                          color_discrete_sequence=[BLUE_DARK])
             fig.update_layout(height=320, showlegend=False)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
         else:
             st.caption("Not enough paired assessment data for this group.")
 
@@ -411,7 +411,7 @@ st.divider()
 # ----------------------------------------------------------------------------
 # SEASONAL / OPERATIONAL TREND
 # ----------------------------------------------------------------------------
-st.header("📅 Attendance Trend Across the Year")
+st.header("Attendance Trend Across the Year")
 st.caption(
     "Uses the detailed attendance log (clean_attendance.csv), excluding 'No Class' days, "
     "to show how the present-rate moves month to month — useful for spotting fatigue or "
@@ -433,7 +433,7 @@ try:
         color_discrete_sequence=[BLUE_DARK],
     )
     fig.update_traces(line_width=3, marker_size=8)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
     peak_month = trend.loc[trend["Present_Flag"].idxmax(), "Month"].strftime("%B %Y")
     low_month = trend.loc[trend["Present_Flag"].idxmin(), "Month"].strftime("%B %Y")
